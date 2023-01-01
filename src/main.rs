@@ -14,7 +14,7 @@ use html_parser::word_detection;
 // player
 const STARTER_COORDS: Point2<f32> = ORIGIN_POINT;
 const PLAYER_HB_W: f32 = 45f32;
-const PLAYER_HB_RATIO: f32 = 16f32 / 9f32;
+const PLAYER_HB_RATIO: f32 = 16f32 / 16f32;
 const PLAYER_HB_H: f32 = PLAYER_HB_W * PLAYER_HB_RATIO;
 const PLAYER_HB_W_HALF: f32 = PLAYER_HB_W * 0.5;
 const PLAYER_HB_H_HALF: f32 = PLAYER_HB_H * 0.5;
@@ -32,7 +32,7 @@ const TILE_SIZE_HALF: f32 = TILE_SIZE * 0.5;
 
 
 // speed and such
-const GRAVITY: f32 = 74.6;
+const GRAVITY: f32 = 75f32;
 const DEFAULT_TILE_NUM: u16 = 1;
 // etc
 const TILE_STR_REGULAR: &str = "Regular";
@@ -57,17 +57,22 @@ const fn new_vec2(coords: (f32, f32)) -> Vector2<f32>{
         y
     }
 }
-fn move_player(player: &mut PlayerStruct, movement_vec: Vector2<f32>) {
-    let (x_mov, y_mov): (f32, f32) = (movement_vec.x, movement_vec.y);
-    player.coords.x += x_mov;
-    player.coords.y += y_mov;
-    player.sprite.0.x += x_mov;
-    player.sprite.0.y += y_mov;
+const fn vec_to_point2(vector: Vector2<f32>) -> Point2<f32>{
+    Point2 {
+        x: vector.x,
+        y: vector.y,
+    }
+}
+const fn point2_to_vec(point2: Point2<f32>) -> Vector2<f32>{
+    Vector2 {
+        x: point2.x,
+        y: point2.y,
+    }
 }
 fn jump(ctx: &mut Context, player: &mut PlayerStruct, dt: f32) {
 // just a check to see if a player can jump. if so, jump
     if frame_key_check(ctx, KeyCode::Space) && player.can_jump{
-        move_player(player, new_vec2((0f32, -1f32)));
+        player.move_object(new_vec2((0f32, -1f32)));
         player.accelaration.y = JUMP_STRENGTH * dt;
         if player.jump_count > 0{
             player.jump_count -= 1;
@@ -193,69 +198,133 @@ fn parse_level(ctx: &mut Context, level_path: &str) -> Vec<Tile>{
 fn blocking_collision_check(player: &mut PlayerStruct, tile: &mut Tile) -> ObstacleOrientation {
     let player_center: (f32, f32) = (player.sprite.0.center().x, player.sprite.0.center().y);
     let tile_center: (f32, f32) = (tile.sprite.0.center().x, tile.sprite.0.center().y);
-    // let distance_between_centers: (f32, f32) = (player_center.0 - tile_center.0, player_center.1 - tile_center.1);
+//     // let distance_between_centers: (f32, f32) = (player_center.0 - tile_center.0, player_center.1 - tile_center.1);
+//
+//     let distance_b_to_t: f32 = player.sprite.0.bottom() - tile.sprite.0.top();
+//
+//     let distance_l_to_r: f32 = player.sprite.0.left() - tile.sprite.0.right();
+//
+//     let distance_t_to_b: f32 = player.sprite.0.top() - tile.sprite.0.bottom();
+//
+//     let distance_r_to_l: f32 = player.sprite.0.right() - tile.sprite.0.left();
+//
+//
+//     // println!("distance_between_centers: {:?}", distance_between_centers);
+//     // println!("btt: {},ltr: {}, ttb: {},rtl: {}", distance_b_to_t, distance_l_to_r, distance_t_to_b, distance_r_to_l);
+//     // if distance_b_to_t < 1f32 {
+//     //     // move_player(player, new_vec2((0f32, -distance_b_to_t)));
+//     //     return ObstacleOrientation::Up
+//     // } else if distance_t_to_b > -(TILE_SIZE * 0.2){
+//     //     // move_player(player, new_vec2((0f32, -distance_t_to_b)));
+//     //     return ObstacleOrientation::Down
+//     // } else if distance_l_to_r > -(TILE_SIZE * 0.2){
+//     //     // move_player(player, new_vec2((-distance_l_to_r, 0f32)));
+//     //     return ObstacleOrientation::Right
+//     // } else if distance_r_to_l < (TILE_SIZE * 0.2) {
+//     //     // move_player(player, new_vec2((-distance_r_to_l, 0f32)));
+//     //     return ObstacleOrientation::Left
+//     // } else {
+//     //     // move_player(player, new_vec2((0f32, -distance_b_to_t)));
+//     //     return ObstacleOrientation::Clip
+//     // }
+// //     basically a squence to determine which part of player is closest to what part of tile
+//     let distance_array: [f32; 4] = [distance_b_to_t, distance_l_to_r, distance_t_to_b, distance_r_to_l];
+//     let mut lowest_value_var: f32 = f32::MAX;
+//     let distance_array = distance_array.map(| elem | elem.abs());
+//     for distance in distance_array {
+//         if distance < lowest_value_var {
+//             lowest_value_var = distance;
+//         }
+//     }
+//     // println!("{}", lowest_value_var);
+//     if lowest_value_var == distance_b_to_t.abs() {
+//         move_player(player, new_vec2((0f32, -distance_b_to_t)));
+// //         how many times player can jump = player.jump_count + 1;
+//         ObstacleOrientation::Up
+//     } else if lowest_value_var == distance_l_to_r.abs(){
+//         if distance_b_to_t <= MAX_PLAYER_CLIPPING_DISTANCE {
+//             move_player(player, new_vec2((0f32, -distance_b_to_t)));
+//         } else {
+//         move_player(player, new_vec2((-distance_l_to_r, 0f32)));
+//         }
+//         ObstacleOrientation::Right
+//     } else if lowest_value_var == distance_t_to_b.abs(){
+//         move_player(player, new_vec2((0f32, -distance_t_to_b + 1f32)));
+//         ObstacleOrientation::Down
+//     } else if lowest_value_var == distance_r_to_l.abs(){
+//         if distance_b_to_t <= MAX_PLAYER_CLIPPING_DISTANCE {
+//             move_player(player, new_vec2((0f32, -distance_b_to_t)));
+//         } else {
+//         move_player(player, new_vec2((-distance_r_to_l, 0f32)));
+//         }
+//         ObstacleOrientation::Left
+//     } else {
+//         ObstacleOrientation::Clip
+//     }
 
-    let distance_b_to_t: f32 = player.sprite.0.bottom() - tile.sprite.0.top();
+// FIXME THIS IS A BETTER SOLUTION BUT I ARCHIVE IT ANYWAY CUZ FUCK IT
+    let relevant_point_x_1: f32;
+    let relevant_point_x_2: f32;
+    let relevant_point_y_1: f32;
+    let relevant_point_y_2: f32;
+    let object_collision_l_or_r: ObstacleOrientation;
+    let object_collision_u_or_d: ObstacleOrientation;
+    let distance_to_push_l_or_r: f32;
+    let distance_to_push_u_or_d: f32;
+    let player_top = player.sprite.0.top();
+    let player_bottom = player.sprite.0.bottom();
+    let player_left = player.sprite.0.left();
+    let player_right = player.sprite.0.right();
+    let tile_top = tile.sprite.0.top();
+    let tile_bottom = tile.sprite.0.bottom();
+    let tile_left = tile.sprite.0.left();
+    let tile_right = tile.sprite.0.right();
 
-    let distance_l_to_r: f32 = player.sprite.0.left() - tile.sprite.0.right();
-
-    let distance_t_to_b: f32 = player.sprite.0.top() - tile.sprite.0.bottom();
-
-    let distance_r_to_l: f32 = player.sprite.0.right() - tile.sprite.0.left();
 
 
-    // println!("distance_between_centers: {:?}", distance_between_centers);
-    // println!("btt: {},ltr: {}, ttb: {},rtl: {}", distance_b_to_t, distance_l_to_r, distance_t_to_b, distance_r_to_l);
-    // if distance_b_to_t < 1f32 {
-    //     // move_player(player, new_vec2((0f32, -distance_b_to_t)));
-    //     return ObstacleOrientation::Up
-    // } else if distance_t_to_b > -(TILE_SIZE * 0.2){
-    //     // move_player(player, new_vec2((0f32, -distance_t_to_b)));
-    //     return ObstacleOrientation::Down
-    // } else if distance_l_to_r > -(TILE_SIZE * 0.2){
-    //     // move_player(player, new_vec2((-distance_l_to_r, 0f32)));
-    //     return ObstacleOrientation::Right
-    // } else if distance_r_to_l < (TILE_SIZE * 0.2) {
-    //     // move_player(player, new_vec2((-distance_r_to_l, 0f32)));
-    //     return ObstacleOrientation::Left
-    // } else {
-    //     // move_player(player, new_vec2((0f32, -distance_b_to_t)));
-    //     return ObstacleOrientation::Clip
-    // }
-//     basically a squence to determine which part of player is closest to what part of tile
-    let distance_array: [f32; 4] = [distance_b_to_t, distance_l_to_r, distance_t_to_b, distance_r_to_l];
-    let mut lowest_value_var: f32 = f32::MAX;
-    let distance_array = distance_array.map(| elem | elem.abs());
-    for distance in distance_array {
-        if distance < lowest_value_var {
-            lowest_value_var = distance;
-        }
+    //     first we determine the relative position of collision actors: by x and y. that will determine the value of relevant_point's
+    if player_center.0 <= tile_center.0 {
+        relevant_point_x_1 = tile_left;
+        relevant_point_x_2 = player_right;
+        object_collision_l_or_r = ObstacleOrientation::Left;
+    } else{
+        relevant_point_x_1 = tile_right;
+        relevant_point_x_2 = player_left;
+        object_collision_l_or_r = ObstacleOrientation::Right;
     }
-    // println!("{}", lowest_value_var);
-    if lowest_value_var == distance_b_to_t.abs() {
-        move_player(player, new_vec2((0f32, -distance_b_to_t)));
-//         how many times player can jump = player.jump_count + 1;
-        ObstacleOrientation::Up
-    } else if lowest_value_var == distance_l_to_r.abs(){
-        if distance_b_to_t <= MAX_PLAYER_CLIPPING_DISTANCE {
-            move_player(player, new_vec2((0f32, -distance_b_to_t)));
-        } else {
-        move_player(player, new_vec2((-distance_l_to_r, 0f32)));
-        }
-        ObstacleOrientation::Right
-    } else if lowest_value_var == distance_t_to_b.abs(){
-        move_player(player, new_vec2((0f32, -distance_t_to_b + 1f32)));
-        ObstacleOrientation::Down
-    } else if lowest_value_var == distance_r_to_l.abs(){
-        if distance_b_to_t <= MAX_PLAYER_CLIPPING_DISTANCE {
-            move_player(player, new_vec2((0f32, -distance_b_to_t)));
-        } else {
-        move_player(player, new_vec2((-distance_r_to_l, 0f32)));
-        }
-        ObstacleOrientation::Left
+    distance_to_push_l_or_r = relevant_point_x_1 - relevant_point_x_2;
+    if player_center.1 <= tile_center.1 {
+        relevant_point_y_1 = tile_top;
+        relevant_point_y_2 = player_bottom;
+        object_collision_u_or_d = ObstacleOrientation::Up;
     } else {
-        ObstacleOrientation::Clip
+        relevant_point_y_1 = tile_bottom;
+        relevant_point_y_2 = player_top;
+        object_collision_u_or_d = ObstacleOrientation::Down;
     }
+    distance_to_push_u_or_d = relevant_point_y_1 - relevant_point_y_2;
+
+    if distance_to_push_l_or_r.abs() <= distance_to_push_u_or_d.abs() {
+
+        player.move_object(
+            new_vec2(
+                (distance_to_push_l_or_r, 0f32)
+            )
+        );
+
+
+        return object_collision_l_or_r;
+    } else {
+        player.move_object(
+            new_vec2(
+                (0f32, distance_to_push_u_or_d)
+            )
+        );
+
+        return object_collision_u_or_d;
+    }
+
+    ObstacleOrientation::Clip
 }
 // structs
 struct PlayerStruct {
@@ -278,7 +347,22 @@ struct EditorInfo {
     selected_tile_type: TileType,
     editor_tile: Tile,
     editor_cursor: (Rect, Mesh),
+    editor_prompt: UserInterfaceElement,
 }
+pub struct UserInterfaceElement {
+    element_dims: Point2<f32>,
+    element_coords: Point2<f32>,
+    text_colour: Color,
+    element_colour: Color,
+    text_scale: f32,
+    is_rounded: bool,
+    alignment: TextLayout,
+    margin_l_and_r: f32,
+    margin_t_and_b: f32,
+    rect_and_mesh: (Rect, Mesh),
+    text_object: Text,
+}
+
 // enums
 #[derive(Copy, Clone)]
 enum TileType {
@@ -296,6 +380,7 @@ enum ObstacleOrientation {
 // traits
 pub trait Moveable {
     fn move_object(&mut self, movement_vec: Vector2<f32>);
+    fn teleport_object(&mut self, movement_vec: Vector2<f32>);
 }
 impl Moveable for PlayerStruct {
     fn move_object(&mut self, movement_vec: Vector2<f32>) {
@@ -305,6 +390,13 @@ impl Moveable for PlayerStruct {
         self.sprite.0.x += x_mov;
         self.sprite.0.y += y_mov;
     }
+    fn teleport_object(&mut self, movement_vec: Vector2<f32>) {
+        let (x_mov, y_mov): (f32, f32) = (movement_vec.x, movement_vec.y);
+        self.coords.x = x_mov + PLAYER_HB_W_HALF;
+        self.coords.y = y_mov + PLAYER_HB_H_HALF;
+        self.sprite.0.x = x_mov;
+        self.sprite.0.y = y_mov;
+    }
 }
 impl Moveable for Tile {
     fn move_object(&mut self, movement_vec: Vector2<f32>) {
@@ -313,6 +405,25 @@ impl Moveable for Tile {
         self.tile_info.0.y += y_mov;
         self.sprite.0.x += x_mov;
         self.sprite.0.y += y_mov;
+    }
+    fn teleport_object(&mut self, movement_vec: Vector2<f32>) {
+        let (x_mov, y_mov): (f32, f32) = (movement_vec.x, movement_vec.y);
+        self.tile_info.0.x = x_mov + PLAYER_HB_W_HALF;
+        self.tile_info.0.y = y_mov + PLAYER_HB_H_HALF;
+        self.sprite.0.x = x_mov;
+        self.sprite.0.y = y_mov;
+    }
+}
+impl Moveable for UserInterfaceElement {
+    fn move_object(&mut self, movement_vec: Vector2<f32>) {
+        let (x_mov, y_mov): (f32, f32) = (movement_vec.x, movement_vec.y);
+        self.rect_and_mesh.0.x += x_mov;
+        self.rect_and_mesh.0.y += y_mov;
+    }
+    fn teleport_object(&mut self, movement_vec: Vector2<f32>) {
+        let (x_mov, y_mov): (f32, f32) = (movement_vec.x, movement_vec.y);
+        self.rect_and_mesh.0.x = x_mov;
+        self.rect_and_mesh.0.y = y_mov;
     }
 }
 // struct implementations
@@ -370,7 +481,7 @@ impl Tile {
         let tile_rect = graphics::Rect::new(0f32, 0f32, TILE_SIZE, TILE_SIZE);
         let tile_mesh = graphics::Mesh::new_rectangle(ctx, DrawMode::Fill(FillOptions::default()), tile_rect, Color::WHITE).expect("bruh at impl Tile\n \tpub fn default(){\n}");
         let sprite = (tile_rect, tile_mesh);
-        let default_coords = new_point2((0 as f32, 0 as f32));
+        let default_coords = ORIGIN_POINT;
         Self {
             tile_num: 0,
             sprite,
@@ -379,7 +490,96 @@ impl Tile {
         }
     }
 }
-
+impl UserInterfaceElement {
+    pub fn new(ctx: &mut Context, text: Option<String>, element_dims: Point2<f32>, element_coords: Point2<f32>, text_colour: Color, element_colour: Color, text_font: Option<String>, text_scale: f32, is_rounded: bool, alignment: TextLayout, margin_l_and_r: f32, margin_t_and_b: f32) -> UserInterfaceElement {
+        let reale_text = match text {
+            Some(n) => n,
+            None => "Default Text".to_string(),
+        };
+        let reale_text_font = match text_font {
+            Some(n) => n,
+            None => "NightmareCodehack".to_string(),
+        };
+        let text_fragment = TextFragment::new(reale_text)
+            .font(reale_text_font)
+            .scale(text_scale)
+            .color(text_colour);
+        let mut text_object = Text::new(text_fragment);
+        text_object
+            .set_bounds(element_dims)
+            .set_wrap(true)
+            .set_layout(alignment);
+        // let text_dims = match text_object.measure(ctx) {
+        //     Ok(n) => n,
+        //     Err(e) => panic!("panick!'d at UserInterfaceElement: new()"),
+        // };
+        let textbox_rect = Rect::new(
+            // -((element_dims.x + margin_l_and_r) * 0.5),
+            // -((element_dims.y + margin_t_and_b) * 0.5),
+            element_coords.x,
+            element_coords.y,
+            element_dims.x + margin_l_and_r,
+            element_dims.y + margin_t_and_b,
+        );
+        let textbox_mesh = match is_rounded {
+            true => Mesh::new_rounded_rectangle(
+                ctx,
+                DrawMode::Fill (
+                    FillOptions::default()
+                ),
+                textbox_rect,
+                10f32,
+                element_colour,
+            ),
+            false => Mesh::new_rectangle(
+                ctx,
+                DrawMode::Fill(
+                    FillOptions::default()
+                ),
+                textbox_rect,
+                element_colour,
+            ),
+        }.expect("error at rendering mesh at UserInterfaceElement: new()");
+        UserInterfaceElement {
+            element_dims,
+            element_coords,
+            text_colour,
+            element_colour,
+            text_scale,
+            is_rounded,
+            alignment,
+            margin_l_and_r,
+            margin_t_and_b,
+            rect_and_mesh: (textbox_rect, textbox_mesh),
+            text_object,
+        }
+    }
+    pub fn render_to_canvas(&self, canvas: &mut Canvas) {
+        canvas.draw(
+            &self.rect_and_mesh.1,
+            // new_point2(
+            //     (
+            //         self.element_coords.x  + self.margin_l_and_r * 0.5,
+            //         self.element_coords.y  + self.margin_t_and_b * 0.5
+            //     )
+            //
+            // ),
+            new_point2(
+                (self.rect_and_mesh.0.center().x - self.element_coords.x - self.element_dims.x * 0.5, self.rect_and_mesh.0.center().y - self.element_coords.y - self.element_dims.y * 0.5),
+            ),
+        );
+        canvas.draw(
+            &self.text_object,
+            // new_point2(
+            //     (
+            //         self.element_coords.x + self.element_dims.x * 0.5 - text_dims.x * 0.5,
+            //         self.element_coords.y + self.element_dims.y * 0.5 - text_dims.y * 0.5
+            //     )
+            // )
+            self.rect_and_mesh.0.center(),
+        );
+    }
+}
 // MainState init struct
 struct MainState {
     player: PlayerStruct,
@@ -392,6 +592,7 @@ struct MainState {
 // implement MainState
 impl MainState {
     pub fn new(ctx: &mut Context) -> MainState {
+        let screen_dimensions = ctx.gfx.drawable_size();
         let tiles = parse_level(ctx, "/level.txt");
         let editor_cursor_rect = graphics::Rect::new(ORIGIN_POINT.x, ORIGIN_POINT.y, EDITOR_CURSOR_DIMS, EDITOR_CURSOR_DIMS);
         let editor_cursor_mesh = graphics::Mesh::new_rectangle(ctx, DrawMode::Fill(FillOptions::default()), editor_cursor_rect, Color::MAGENTA).expect("COULD NOT CREATE MESH AT MainState::new()");
@@ -399,16 +600,50 @@ impl MainState {
             editor_cursor_rect,
             editor_cursor_mesh
         );
+        let editor_text = UserInterfaceElement::new(
+            ctx,
+            Some(
+                String::from("EDITOR MODE. CLICK THE RIGHT MOUSE BUTTON TO SAVE LAYOUT TO CUSTOM FILE")
+            ),
+            new_point2(
+                (320f32, 140f32)
+            ),
+            new_point2(
+                (screen_dimensions.0 - 330f32, screen_dimensions.1 - 890f32)
+            ),
+            Color::new(
+                0.7764705882352941,
+                0.7764705882352941,
+                0.7215686274509804,
+                1f32
+            ),
+            Color::new(
+                0.1490196078431373,
+                0.1529411764705882,
+                0.3333333333333333,
+                1f32
+            ),
+            None,
+            20f32,
+            true,
+            TextLayout {
+                h_align: TextAlign::Middle,
+                v_align: TextAlign::Middle
+            },
+            10f32,
+            10f32,
+        );
         MainState {
             player: PlayerStruct::new(ctx, new_point2((STARTER_COORDS.x + ADDITIONAL_COORD_VALUE, STARTER_COORDS.y + ADDITIONAL_COORD_VALUE))),
             tiles,
-            screen_dimensions: ctx.gfx.drawable_size(),
+            screen_dimensions,
             mode: 0,
             editor_info: EditorInfo {
                 selected_tile_type: TileType::Regular,
                 editor_tile: Tile::default(ctx),
                 editor_cursor,
-                },
+                editor_prompt: editor_text,
+            },
         }
     }
 }
@@ -431,12 +666,12 @@ impl EventHandler for MainState {
         }
 //         load standard level
         if frame_key_check(ctx, KeyCode::L) {
-        teleport_player(&mut self.player, new_vec2((0f32,0f32)));
+        self.player.teleport_object( new_vec2((0f32,0f32)));
         self.mode = 0;
         self.tiles = parse_level(ctx, "/level.txt");
         }
 //         start logic
-        if self.mode == 0{
+        if self.mode == 0 {
             self.player.max_player_acceleration = (15f32, 15f32);
 
             let dt = ctx.time.delta().as_secs_f32();
@@ -452,11 +687,11 @@ impl EventHandler for MainState {
             }
             else if key_check(ctx, KeyCode::Left) {
                 jump(ctx, &mut self.player, dt);
-                move_player(&mut self.player, new_vec2((-1f32, 0f32)));
+                self.player.move_object(new_vec2((-1f32, 0f32)));
                 self.player.accelaration.x += -50f32 * dt;
             }
             else if key_check(ctx, KeyCode::Down) {
-                move_player(&mut self.player, new_vec2((0f32, 1f32)));
+                // self.player.move_object(new_vec2((0f32, 20f32)));
             } else {
                 jump(ctx, &mut self.player, dt);
             }
@@ -496,20 +731,19 @@ impl EventHandler for MainState {
                 }
             }
             // println!("the length of vec_of_collision_tiles: {}", &vec_of_collision_tiles.len());
+    //         DONT CHANGE I THIIIINK
             for tile in vec_of_collision_tiles {
                 if self.player.sprite.0.overlaps(&tile.sprite.0) {
                     // let reverse_accel: f32 = self.player.accelaration.y * -0.1;
                     let obst_dir: ObstacleOrientation = blocking_collision_check(&mut self.player, tile);
                     match obst_dir {
                         ObstacleOrientation::Left => {
-                            // self.player.accelaration.x = 0f32;
+                            self.player.accelaration.x = 0f32;
                             // println!("Left");
-                            self.player.accelaration.x *= -1f32
                         }
                         ObstacleOrientation::Right => {
-                            // self.player.accelaration.x = 0f32;
+                            self.player.accelaration.x = 0f32;
                             // println!("Right");
-                            self.player.accelaration.x *= -1f32;
                         }
                         ObstacleOrientation::Up => {
                             self.player.can_jump = true;
@@ -530,10 +764,9 @@ impl EventHandler for MainState {
                     }
                 }
             }
-    //         DONT CHANGE I THIIIINK
             player_movement.x += self.player.accelaration.x;
             player_movement.y += self.player.accelaration.y;
-            move_player(&mut self.player, player_movement);
+            self.player.move_object(player_movement);
             vec_of_collision_tiles = vec![];
             Ok(())
         } else if self.mode == 1{
@@ -597,20 +830,13 @@ impl EventHandler for MainState {
         // self.mode == 0 IS REGULAR GAMEPLAY
         if self.mode == 0  {
 //             FIXME FIXED VALUES FOR DEBUGGING PURPOSES ONLY
-            let textbox_rect = Rect::new(200f32, 200f32, 100f32, 100f32);
             let mut mb = MeshBuilder::new();
-            let mesh_data = mb
-                .rectangle(DrawMode::Fill(FillOptions::default()), textbox_rect, Color::BLUE)?
-                .build();
-            let mesh_from_mb = Mesh::from_data(ctx, mesh_data);
                 //  get mesh from the PlayerStruct
 
             let player_mesh = &self.player.sprite.1;
 
-            let draw_params_1 = DrawParam::default()
-            .dest(self.player.coords);
 
-            canvas.draw(player_mesh, draw_params_1);
+            canvas.draw(player_mesh, self.player.coords);
 
             for tile in &mut self.tiles {
                 let tile_mesh: &Mesh = &tile.sprite.1;
@@ -619,6 +845,7 @@ impl EventHandler for MainState {
                 canvas.draw(tile_mesh, ORIGIN_POINT);
             }
             canvas.finish(ctx)?;
+
             Ok(())
         }
         // self.mode == 1 IS EDITOR MODE
@@ -680,15 +907,42 @@ impl EventHandler for MainState {
                 );
                 index_of_tile+=1;
             }
-            let text_editor_fragment = TextFragment::new("EDITOR MODE\n CLICK THE RIGHT MOUSE BUTTON\n TO SAVE LAYOUT TO CUSTOM FILE")
-                .font("NightmareCodehack")
-                .color(Color::RED);
-            let text_editor = Text::new(text_editor_fragment);
-            let (text_editor_width, text_editor_height) = (text_editor.measure(ctx)?.x, text_editor.measure(ctx)?.y);
-            let text_editor_pos = (self.screen_dimensions.0 * 0.9 - (text_editor_width * 0.5), self.screen_dimensions.1 * 0.05 - (text_editor_height * 0.5));
-            let text_editor_draw_params = DrawParam::default()
-                .dest(new_point2(text_editor_pos));
-            canvas.draw(&text_editor, text_editor_draw_params);
+
+            let mouse_mov_delta = ctx.mouse.delta();
+            // let editor_text = UserInterfaceElement {
+                // text: String::from("EDITOR MODE. CLICK THE RIGHT MOUSE BUTTON TO SAVE LAYOUT TO CUSTOM FILE"),
+                // element_dims: new_point2(
+                    // (320f32, 140f32)
+                // ),
+                // element_coords: new_point2(
+                    // (self.screen_dimensions.0 - 170f32, self.screen_dimensions.1 - 820f32)
+                // ),
+                // element_colour: Color::new(0.1490196078431373, 0.1529411764705882, 0.3333333333333333, 1f32),
+                // text_colour: Color::new(0.7764705882352941,  0.7764705882352941, 0.7215686274509804, 1f32),
+                // element_colour: Color::WHITE,
+                // text_colour: Color::BLACK,
+                // text_font: NightmareCodehack,
+                // text_scale: 20f32,
+                // is_rounded: true,
+                // alignment: TextLayout {
+                    // h_align: TextAlign::Middle,
+                    // v_align: TextAlign::Middle
+                // },
+                // margin_l_and_r: 10f32,
+                // margin_t_and_b: 10f32,
+            // };
+            // let text_editor_fragment = TextFragment::new("EDITOR MODE\n CLICK THE RIGHT MOUSE BUTTON\n TO SAVE LAYOUT TO CUSTOM FILE")
+            //     .font("NightmareCodehack")
+            //     .color(Color::RED);
+            // let text_editor = Text::new(text_editor_fragment);
+            // let (text_editor_width, text_editor_height) = (text_editor.measure(ctx)?.x, text_editor.measure(ctx)?.y);
+            // let text_editor_pos = (self.screen_dimensions.0 * 0.9 - (text_editor_width * 0.5), self.screen_dimensions.1 * 0.05 - (text_editor_height * 0.5));
+            // let text_editor_draw_params = DrawParam::default()
+            //     .dest(new_point2(text_editor_pos));
+            // canvas.draw(&text_editor, text_editor_draw_params);
+            if self.editor_info.editor_tile.sprite.0.overlaps(&self.editor_info.editor_prompt.rect_and_mesh.0) {
+                self.editor_info.editor_prompt.move_object(point2_to_vec(mouse_mov_delta));
+            }
             canvas.draw (
                 &self.editor_info.editor_cursor.1,
                 new_point2(
@@ -698,6 +952,7 @@ impl EventHandler for MainState {
                     )
                 )
             );
+            self.editor_info.editor_prompt.render_to_canvas(&mut canvas);
             canvas.finish(ctx)?;
             Ok(())
         } else {
